@@ -1,0 +1,65 @@
+name: Deploy to Amazon ECS Dev 
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  # AWS_REGION: ${{ secrets.AWS_LOCAL_REGION }}                              
+  AWS_REGION: us-east-1                              
+  ECR_REPOSITORY: tublian-gpt-copilot-dev               
+  ECS_SERVICE: tublian-gpt-copilot-service-dev                   
+  ECS_CLUSTER: gpt-dev                                        
+  ECS_TASK_DEFINITION: .aws/dev-task-definition.json            
+  CONTAINER_NAME: copilot-dev  
+                                                                
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: development
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_DEV_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_DEV_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build --build-arg ENV_FILE=".env.development" -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
+
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ${{ env.ECS_TASK_DEFINITION }}
+        container-name: ${{ env.CONTAINER_NAME }}
+        image: ${{ steps.build-image.outputs.image }}
+
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ env.ECS_SERVICE }}
+        cluster: ${{ env.ECS_CLUSTER }}
+        wait-for-service-stability: true    # Waits for the running task to be stable before completing the job
