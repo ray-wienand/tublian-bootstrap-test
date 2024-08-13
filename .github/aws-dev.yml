@@ -7,11 +7,11 @@ on:
 env:
   # AWS_REGION: ${{ secrets.AWS_LOCAL_REGION }}                              
   AWS_REGION: us-east-1                              
-  ECR_REPOSITORY: tublian-gpt-copilot-dev               
-  ECS_SERVICE: tublian-gpt-copilot-service-dev                   
-  ECS_CLUSTER: gpt-dev                                        
+  ECR_REPOSITORY: tublian-bootstrap-test           
+  ECS_SERVICE: tublian-bootstrap-test-service                  
+  ECS_CLUSTER: tublian-bootstrap-test-cluster                                        
   ECS_TASK_DEFINITION: .aws/dev-task-definition.json            
-  CONTAINER_NAME: copilot-dev  
+  CONTAINER_NAME: tublian-bootstrap  
                                                                 
 
 permissions:
@@ -44,7 +44,7 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build --build-arg ENV_FILE=".env.development" -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        docker build  -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
 
