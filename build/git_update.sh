@@ -3,7 +3,7 @@
 VERSION=""
 
 # get parameters
-while getoops v: flag
+while getopts v: flag
 do
   case "${flag}" in
     v) VERSION=${OPTARG};;
@@ -18,10 +18,10 @@ if [[ $CURRENT_VERSION == '' ]]
 then
   CURRENT_VERSION='v0.1.0'
 fi
-echo "Current Version: ${CURRENT_VERSION}"
+echo "Current Version: $CURRENT_VERSION"
 
 # replace . with space so can split into an array
-CURRENT_VERSION_PARTS=(${CURRENT_VERSION//./})
+CURRENT_VERSION_PARTS=(${CURRENT_VERSION//./ })
 
 # get number parts
 VNUM1=${CURRENT_VERSION_PARTS[0]}
@@ -33,12 +33,12 @@ then
   VNUM1=v$((VNUM1+1))
 elif [[ $VERSION == 'minor' ]]
 then
-  VNUM2=v$((VNUM2+1))
+  VNUM2=$((VNUM2+1))
 elif [[ $VERSION == 'patch' ]]
 then
-  VNUM3=v$((VNUM3+1))
+  VNUM3=$((VNUM3+1))
 else
-  echo "No version type (https:semver.org/) or incorrect type specified, try: -vmajor, minor, patch"
+  echo "No version type (https://semver.org/) or incorrect type specified, try: -v [major, minor, patch]"
   exit 1
 fi
 
@@ -53,13 +53,13 @@ NEEDS_TAG=`git describe --contains $GIT_COMMIT 2>/dev/null`
 # only tag if no tag already
 if [ -z "$NEEDS_TAG" ]; then
   echo "Tagged with $NEW_TAG"
-  git tag $NEEDS_TAG
+  git tag $NEW_TAG
   git push --tags
   git push
-elif
+else
   echo "Already a tag on this commit"
 fi
 
-echo ::set-output name=git-tag::$NEEDS_TAG
+echo ::set-output name=git-tag::$NEW_TAG
 
 exit 0
